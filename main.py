@@ -26,7 +26,7 @@ def midi_to_gmd(midi_file_path, output_file_path):
                 xPos = 4 + (msg.note * 7.5)
                 yPos = initial_y_pos + (start_time * time_per_tick) + ((30 * scaleY - 30) / 2)
                 big_note_y = max(big_note_y, yPos)
-                colorChannel = (msg.channel - 1) % 12 + 1
+                colorChannel = (msg.channel - 1) % 15 + 1
                 soundChannel = msg.channel
                 line = (f"1,890,2,{yPos:.2f},3,{xPos},57,0,21,{colorChannel},32,1.0,155,1,128,{scaleY:.2f},129,{scaleX:.2f},"
                         f"24,{soundChannel},25,{soundChannel};")
