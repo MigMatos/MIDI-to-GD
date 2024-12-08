@@ -7,7 +7,7 @@ Currently, it only provides visual notes tests, but in the future, it is planned
 
 To run the script, you will need the following:
 
-- **Python 3**
+- **Python 3 (3.8 - latest)**
 
 These packages will be installed automatically if you have a `requirements.txt` file in your project directory.
 
