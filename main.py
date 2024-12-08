@@ -147,7 +147,7 @@ def midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode = 0):
     #lines.append(f"1,1616,2,{big_note_y},3,527.25,51,5,580,0,11,1;") #Stop trigger
     lines.append("1,3614,2,-44.5,3,1748.75,57,5,155,1,36,1,80,2,468,1,470,1,62,1;") #Timerchecker
     lines.append(f"1,3614,2,-44.5,3,1728.75,57,5,155,1,36,1,80,1,473,{end_time_midi:.2f},474,1,468,1,469,1,470,1,62,1;") #Timestopped
-    lines.append(f"1,1268,2,{initial_y_pos},3,1728.75,51,5,11,1;") #Spawn trigger
+    lines.append(f"1,1268,2,{initial_y_pos},3,528.75,51,5,11,1;") #Spawn trigger
 
     # Song triggers
     id_song = random_id_song()
