@@ -180,10 +180,18 @@ def select_mode():
         selected_mode = selection
         root.quit()
     root = tk.Tk()
-    root.title("Select Mode")
-    button_audio = tk.Button(root, text="Only Audio", command=lambda: on_button_click(0))
+    root.title("MIDI TO GD")
+
+    message = (
+        "The level will only be playable in platformer mode (you'll need to change it manually).\n\n"
+        "If you experience desynchronization, you'll need to manually adjust the move trigger time to match the MIDI's duration (sometimes the MIDI duration is detected incorrectly)."
+    )
+    label = tk.Label(root, text=message, wraplength=400, justify="left")
+    label.pack(pady=10)
+
+    button_audio = tk.Button(root, text="Only Audio [WIP] (BROKEN)", command=lambda: on_button_click(0))
     button_visual = tk.Button(root, text="Only Visual", command=lambda: on_button_click(1))
-    button_both = tk.Button(root, text="Audio + Visual", command=lambda: on_button_click(2))
+    button_both = tk.Button(root, text="Audio + Visual (No recommended in big MIDIs)", command=lambda: on_button_click(2))
     button_audio.pack(pady=10)
     button_visual.pack(pady=10)
     button_both.pack(pady=10)
