@@ -1,9 +1,11 @@
+import random
+import shutil
 from pretty_midi import PrettyMIDI
 import os
 from zlib import compress
 from base64 import urlsafe_b64encode, b64encode
 import tkinter as tk
-from tkinter import filedialog,simpledialog
+from tkinter import filedialog,simpledialog,messagebox
 import json
 
 with open('notes.json', 'r') as file:
@@ -15,6 +17,22 @@ def get_obj_note(pitch, x, y, speed, volume):
     except:return ""
     try:return str(key_data).format(round(float(x),4),round(float(y),4),int(speed),round(float(volume),2))
     except:return ""
+
+def random_id_song():return random.randint(1000000, 5000000)
+
+def copy_and_rename_midi(midi_file_path,new_filename):
+    try:
+        dest_folder = os.path.join(os.getenv('LOCALAPPDATA'), 'GeometryDash')
+        if not os.path.exists(dest_folder):
+            raise FileNotFoundError("Folder 'GeometryDash' not found")
+        mp3_file_path = os.path.join(dest_folder, new_filename + ".mp3")
+        shutil.copy(midi_file_path, mp3_file_path)
+        print(f"MIDI File moved to Geometry Dash Folder: {mp3_file_path}")
+    except FileNotFoundError:
+        messagebox.showerror("Error", "Error finding the 'GeometryDash' folder")
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+
 
 def gdNumber(number: float) -> str:
     return "{:.5e}".format(number) if number > 9999 else str(number)
@@ -36,6 +54,7 @@ def midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode = 0):
     print(f"Converting mode: {midi_converter_mode}")
     midi_data = PrettyMIDI(midi_file_path)
     seconds_midi = midi_data.get_end_time()
+    rel_mid = midi_data.resolution # f
 
     lines = []
     initial_y_pos = 1005
@@ -58,8 +77,6 @@ def midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode = 0):
         i+=1
         end_time_midi = max(end_time_midi, last_note_time)
         
-
-
         for note in instrument.notes:
 
             last_note_time = note.end
@@ -69,7 +86,7 @@ def midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode = 0):
             for second in range(int(start_time), int(note.end) + 1):
                 if second < len(notes_active_per_second):notes_active_per_second[second] += 1
             scaleX, scaleY = 0.25, max(duration*view_notes_scale, 0.05)
-
+            
             # view inverted
             xPos = 960 - (note.pitch * 7.5)
             yPos = initial_y_pos + (start_time * ticks_ingame_viewer) + ((30 * scaleY - 30) / 2)
@@ -78,13 +95,14 @@ def midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode = 0):
             big_note_y = max(big_note_y, yPos)
             colorChannel = (i % 15) + 1
 
-            if(midi_converter_mode in {0,2}):
+            if(midi_converter_mode in {0}):
                 obj_note = get_obj_note(note.pitch, yPos, 527.25, (duration * (note.velocity*0.01)), (note.velocity*0.01))
                 lines.append(obj_note)
             elif (midi_converter_mode in {1,2}):
                 lines.append(f"1,890,2,{yPos:.2f},3,{xPos:.2f},57,0,21,{colorChannel},32,1.0,155,1,128,{scaleY:.2f},129,{scaleX:.2f},24,{i},25,{i};")
-
+            
     print(f"Total length of MIDI: {end_time_midi:.2f} seconds")
+    print(f"Total length level: {big_note_y}")
     ## Notes counter
     print("Adding counter....")
     #print(notes_active_per_second, sum(notes_active_per_second[1:]))
@@ -131,6 +149,11 @@ def midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode = 0):
     lines.append(f"1,3614,2,-44.5,3,1728.75,57,5,155,1,36,1,80,1,473,{end_time_midi:.2f},474,1,468,1,469,1,470,1,62,1;") #Timestopped
     lines.append(f"1,1268,2,{initial_y_pos},3,1728.75,51,5,11,1;") #Spawn trigger
 
+    # Song triggers
+    id_song = random_id_song()
+    lines.append(f"1,1934,2,1005.5,3,488.75,155,1,129,4,11,1,13,1,36,1,392,{id_song},406,1,421,1,422,0.5,10,0.5;")
+    lines.append(f"1,1934,2,-5.5,3,488.75,155,1,129,1,13,1,36,1,392,1,406,0.0,421,1,422,0.5,10,0.5;") #init
+
     colors = [
         (51, 102, 255), (255, 126, 51), (51, 255, 102), (255, 51, 129),
         (51, 255, 255), (228, 51, 255), (153, 255, 51), (75, 51, 255),
@@ -153,6 +176,8 @@ def midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode = 0):
     strin = f'<?xml version="1.0"?><plist version="1.0" gjver="2.0"><dict><k>kCEK</k><i>4</i><k>k18</k><i>10</i><k>k23</k><i>5</i><k>k2</k><s>{str(filename)[:30]}</s><k>k4</k><s>'
     strlast = "</s><k>k5</k><s>ObeyGDBot</s><k>k101</k><s>0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0</s><k>k11</k><i>57</i><k>k13</k><t /><k>k21</k><i>2</i><k>k16</k><i>1</i><k>k80</k><i>673</i><k>k27</k><i>57</i><k>k50</k><i>45</i><k>k47</k><t /><k>k48</k><i>26</i><k>k104</k><s>131313</s><k>kI1</k><r>206.715</r><k>kI2</k><r>243.573</r><k>kI3</k><r>0.3</r><k>kI4</k><i>5</i><k>kI5</k><i>12</i><k>kI7</k><i>-1</i><k>kI6</k><d><k>0</k><s>0</s><k>1</k><s>0</s><k>2</k><s>0</s><k>3</k><s>0</s><k>4</k><s>0</s><k>5</k><s>3</s><k>6</k><s>0</s><k>7</k><s>0</s><k>8</k><s>0</s><k>9</k><s>0</s><k>10</k><s>0</s><k>11</k><s>0</s><k>12</k><s>5</s><k>13</k><s>0</s></d></dict></plist>"
     final = strin + encoded_lvlstr + strlast
+
+    if(midi_converter_mode == 2):copy_and_rename_midi(midi_file_path,str(id_song))
 
 
     with open(output_file_path, 'wb') as fn:
@@ -189,21 +214,23 @@ def select_mode():
     label = tk.Label(root, text=message, wraplength=400, justify="left")
     label.pack(pady=10)
 
-    button_audio = tk.Button(root, text="Only Audio [WIP] (BROKEN)", command=lambda: on_button_click(0))
+    button_audio = tk.Button(root, text="Only Audio for Mobiles [WIP] (BROKEN)", command=lambda: on_button_click(0))
     button_visual = tk.Button(root, text="Only Visual", command=lambda: on_button_click(1))
-    button_both = tk.Button(root, text="Audio + Visual (No recommended in big MIDIs)", command=lambda: on_button_click(2))
+    button_both = tk.Button(root, text="Audio + Visual (PC ONLY) [Not recommended for big MIDIs]", command=lambda: on_button_click(2))
     button_audio.pack(pady=10)
     button_visual.pack(pady=10)
     button_both.pack(pady=10)
     root.mainloop()
     return selected_mode
 
+
+
 if __name__ == "__main__":
     midi_file_path = select_midi_file()
     if midi_file_path:
         output_file_path = select_output_location()
-        midi_converter_mode = select_mode()
         if output_file_path:
+            midi_converter_mode = select_mode()
             midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode)
         else:
             print("No output file selected.")
