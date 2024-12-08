@@ -1,7 +1,7 @@
 # MIDI to Geometry Dash GMD Files
 
 This project converts MIDI files to GMD files (which you can import into Geometry Dash using the [GDShare](https://github.com/HJfod/GDShare) mod via [Geode](https://github.com/geode-sdk/geode)).
-Currently, it only provides visual notes tests, but in the future, it is planned to be able to play the MIDI melody via SFX Triggers.
+Currently provides visual notes or playing MIDI melody via SFX Triggers [WIP] (works but has very bad audio)
 
 ## Requirements
 
