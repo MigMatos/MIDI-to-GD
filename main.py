@@ -41,7 +41,7 @@ def midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode = 0):
     initial_y_pos = 1005
     total_notes = 0
     big_note_y = 0
-    view_notes_scale, ticks_ingame_viewer = scaleGDNotes(scale=40)
+    view_notes_scale, ticks_ingame_viewer = scaleGDNotes(scale=30)
     notes_active_per_second = [0] * (int(seconds_midi) + 1)
     i = 1
     end_time_midi = 0
@@ -96,12 +96,14 @@ def midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode = 0):
         lines.append(f"1,1817,2,{xpos_counter:.2f},3,525,155,1,11,1,36,1,80,4,77,{int(count_notes)},139,1,449,1;")
 
     print("Adding tempo changes...")
-    tempos = midi_data.get_tempo_changes()
-    init_tempo = tempos[1][0] if tempos[1] else 120  # default BPM
-    for time, tempo in zip(*tempos):
-        posX = initial_y_pos + (time * ticks_ingame_viewer)
-        timeMod = gdtimeMod(tempo, init_tempo)
-        lines.append(f"1,1935,2,{posX:.2f},3,527.25,155,1,13,1,36,1,120,{timeMod},11,1;")
+    try:
+        tempos = midi_data.get_tempo_changes()
+        init_tempo = tempos[1][0] if tempos[1] else 120  # default BPM
+        for time, tempo in zip(*tempos):
+            posX = initial_y_pos + (time * ticks_ingame_viewer)
+            timeMod = gdtimeMod(tempo, init_tempo)
+            lines.append(f"1,1935,2,{posX:.2f},3,527.25,155,1,13,1,36,1,120,{timeMod},11,1;")
+    except:pass
 
     # Total notes:
     lines.append(f"1,914,2,213.316,3,1936.82,57,3,155,4,21,25,128,0.25,129,0.25,31,{gdText('Total Notes: {}'.format(total_notes))};")
