@@ -11,11 +11,11 @@ import json
 with open('notes.json', 'r') as file:
     notes_obj_key = json.load(file)
 
-def get_obj_note(pitch, x, y, speed, volume):
-    key_data = pitch - 37
+def get_obj_note(pitch, x, y, volume):
+    key_data = pitch - 27
     try:key_data = notes_obj_key[str(key_data)]
     except:return ""
-    try:return str(key_data).format(round(float(x),4),round(float(y),4),int(speed),round(float(volume),2))
+    try:return str(key_data).format(round(float(x),4),round(float(y),4),round(float(volume),2))
     except:return ""
 
 def random_id_song():return random.randint(1000000, 5000000)
@@ -79,6 +79,7 @@ def midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode = 0):
         
         for note in instrument.notes:
 
+
             last_note_time = note.end
             total_notes += 1
             start_time = note.start
@@ -95,10 +96,10 @@ def midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode = 0):
             big_note_y = max(big_note_y, yPos)
             colorChannel = (i % 15) + 1
 
-            if(midi_converter_mode in {0}):
-                obj_note = get_obj_note(note.pitch, yPos, 527.25, (duration * (note.velocity*0.01)), (note.velocity*0.01))
+            if(midi_converter_mode in {-1,0}):
+                if(note.velocity != 0):obj_note = get_obj_note(note.pitch, yPos, 527.25, (note.velocity*0.01))
                 lines.append(obj_note)
-            elif (midi_converter_mode in {1,2}):
+            if (midi_converter_mode in {-1,1,2}):
                 lines.append(f"1,890,2,{yPos:.2f},3,{xPos:.2f},57,0,21,{colorChannel},32,1.0,155,1,128,{scaleY:.2f},129,{scaleX:.2f},24,{i},25,{i};")
             
     print(f"Total length of MIDI: {end_time_midi:.2f} seconds")
@@ -121,7 +122,7 @@ def midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode = 0):
             posX = initial_y_pos + (time * ticks_ingame_viewer)
             timeMod = gdtimeMod(tempo, init_tempo)
             lines.append(f"1,1935,2,{posX:.2f},3,527.25,155,1,13,1,36,1,120,{timeMod},11,1;")
-    except:pass
+    except:pass 
 
     # Total notes:
     lines.append(f"1,914,2,213.316,3,1936.82,57,3,155,4,21,25,128,0.25,129,0.25,31,{gdText('Total Notes: {}'.format(total_notes))};")
@@ -213,13 +214,14 @@ def select_mode():
     )
     label = tk.Label(root, text=message, wraplength=400, justify="left")
     label.pack(pady=10)
-
+    button_both_mobile = tk.Button(root, text="Audio + Visual for Mobiles [WIP] (BROKEN)", command=lambda: on_button_click(-1))
     button_audio = tk.Button(root, text="Only Audio for Mobiles [WIP] (BROKEN)", command=lambda: on_button_click(0))
     button_visual = tk.Button(root, text="Only Visual", command=lambda: on_button_click(1))
     button_both = tk.Button(root, text="Audio + Visual (PC ONLY) [Not recommended for big MIDIs]", command=lambda: on_button_click(2))
     button_audio.pack(pady=10)
     button_visual.pack(pady=10)
     button_both.pack(pady=10)
+    button_both_mobile.pack(pady=10)
     root.mainloop()
     return selected_mode
 
