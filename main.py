@@ -1,6 +1,7 @@
 import random
 import shutil
 from pretty_midi import PrettyMIDI
+from mido import MidiFile
 import os
 from zlib import compress
 from base64 import urlsafe_b64encode, b64encode
@@ -47,25 +48,70 @@ def gdtimeMod(tempo, init_tempo):
 
 def scaleGDNotes(scale=40):return scale,(scale*30)
 
+def gdRandomObjID():
+    options = [207, 213, 890, 955, 1248, 1249, 1250, 1278, 1742, 2943, 2945, 2947, 2948 , 2949, 2951]
+    return random.choice(options)
+
+groups = {
+    1: [207, 213],                                # 200–299
+    2: [890, 955],                                # 800–999
+    3: [1248, 1249, 1250, 1278],                  # 1000–1499
+    4: [1742],                                    # 1500–1999
+    5: [2943, 2945, 2947, 2948, 2949, 2951]       # 2000–2999
+}
+
+def gdNumberObjSpecific(number):
+    group = (number % 5) + 1
+    return random.choice(groups[group]) if groups[group] else None
+
+def gdIntLayer(n):
+    return max(5, min(32500, int(n / 0.5)))
+
+
 def midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode = 0):
     filename = os.path.basename(midi_file_path)
     print("MIDI Selected:", filename)
-    print("Loading MIDI with PrettyMIDI...")
+    print("Loading MIDI...")
     print(f"Converting mode: {midi_converter_mode}")
+
+    #midi_data = MidiFile(midi_file_path,type=2)
+    #seconds_midi = midi_data.length
+    #rel_mid = midi_data.ticks_per_beat
+    # tempos_dict = {}
+    # print("Creating tempos...")
+    # for track in midi_data.tracks:
+    #     tempo_i=0
+    #     start_time = 0
+    #     for msg in track:
+    #         if msg.type == 'set_tempo':
+    #             tempo_ticks = msg.tempo*0.000001
+    #             tempo_human_read = (60/msg.tempo)*1000000
+    #             time_added = (msg.time/rel_mid if msg.time else 0) * tempos_dict.get(tempo_i-1,[0,0,tempo_ticks,0])[2]
+    #             start_time+=time_added
+    #             last_note_time = tempos_dict.get(tempo_i-1,[0,0])[0]
+    #             tempos_dict[tempo_i] = [start_time,(start_time-last_note_time),tempo_ticks,tempo_human_read] #start_time, duration, ticks, human_ticks
+    #             tempo_i+=1
+    # print(tempos_dict)
+    midi_data = 0
+    print("Loading MIDI Data...")
     midi_data = PrettyMIDI(midi_file_path)
     seconds_midi = midi_data.get_end_time()
-    rel_mid = midi_data.resolution # f
+    rel_mid = midi_data.resolution
+
+    print(rel_mid)
 
     lines = []
     initial_y_pos = 1005
     total_notes = 0
     big_note_y = 0
     view_notes_scale, ticks_ingame_viewer = scaleGDNotes(scale=30)
-    notes_active_per_second = [0] * (int(seconds_midi) + 1)
+    notes_active_per_second = [0] * ((int(seconds_midi) + 1) * 2)
     i = 1
     end_time_midi = 0
     last_note_time = 0
     
+    print(midi_data.get_tempo_changes())
+
     print(view_notes_scale, ticks_ingame_viewer)
 
     print("Generating objects...")
@@ -79,15 +125,16 @@ def midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode = 0):
         
         for note in instrument.notes:
 
-
             last_note_time = note.end
             total_notes += 1
             start_time = note.start
             duration = note.end - note.start
             for second in range(int(start_time), int(note.end) + 1):
-                if second < len(notes_active_per_second):notes_active_per_second[second] += 1
+                if second < len(notes_active_per_second):
+                    if(duration > 1):second = second + int(duration)
+                    notes_active_per_second[second] += 1
             scaleX, scaleY = 0.25, max(duration*view_notes_scale, 0.05)
-            
+
             # view inverted
             xPos = 960 - (note.pitch * 7.5)
             yPos = initial_y_pos + (start_time * ticks_ingame_viewer) + ((30 * scaleY - 30) / 2)
@@ -96,13 +143,19 @@ def midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode = 0):
             big_note_y = max(big_note_y, yPos)
             colorChannel = (i % 15) + 1
 
+            intIDObj = gdNumberObjSpecific(int((start_time + duration)*0.85)+1+i)
+            # intIDObj = gdRandomObjID()
+            # if intIDObj >= 2000:scaleY = scaleY * 2          
+
             if(midi_converter_mode in {-1,0}):
                 if(note.velocity != 0):obj_note = get_obj_note(note.pitch, yPos, 527.25, (note.velocity*0.01))
                 lines.append(obj_note)
             if (midi_converter_mode in {-1,1,2}):
-                lines.append(f"1,890,2,{yPos:.2f},3,{xPos:.2f},57,0,21,{colorChannel},32,1.0,155,1,128,{scaleY:.2f},129,{scaleX:.2f},24,{i},25,{i};")
+                intIDLayer = gdIntLayer(start_time+5+i)
+                lines.append(f"1,{intIDObj},2,{yPos:.2f},3,{xPos:.2f},21,{colorChannel},22,{colorChannel},32,1.0,155,1,128,{scaleY:.2f},129,{scaleX:.2f},20,{intIDLayer},24,{i},25,{intIDLayer},64,1,67,1,96,1,121,1,511,1;")
             
     print(f"Total length of MIDI: {end_time_midi:.2f} seconds")
+    print(f"Total length of MIDI: {seconds_midi:.2f} seconds")
     print(f"Total length level: {big_note_y}")
     ## Notes counter
     print("Adding counter....")
@@ -114,15 +167,14 @@ def midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode = 0):
         lines.append(f"1,1817,2,{xpos_counter:.2f},3,527.25,155,1,11,1,36,1,80,3,77,{int(count_notes)},449,1;")
         lines.append(f"1,1817,2,{xpos_counter:.2f},3,525,155,1,11,1,36,1,80,4,77,{int(count_notes)},139,1,449,1;")
 
-    print("Adding tempo changes...")
-    try:
-        tempos = midi_data.get_tempo_changes()
-        init_tempo = tempos[1][0] if tempos[1] else 120  # default BPM
-        for time, tempo in zip(*tempos):
-            posX = initial_y_pos + (time * ticks_ingame_viewer)
-            timeMod = gdtimeMod(tempo, init_tempo)
-            lines.append(f"1,1935,2,{posX:.2f},3,527.25,155,1,13,1,36,1,120,{timeMod},11,1;")
-    except:pass 
+    realmove_timeingame = (big_note_y/30)/view_notes_scale
+    
+
+    def calculate_x_pos(second,view_notes_scale):(second*view_notes_scale)*30
+
+
+    #print("Adding tempo changes...")
+
 
     # Total notes:
     lines.append(f"1,914,2,213.316,3,1936.82,57,3,155,4,21,25,128,0.25,129,0.25,31,{gdText('Total Notes: {}'.format(total_notes))};")
@@ -131,18 +183,18 @@ def midi_to_gmd(midi_file_path, output_file_path, midi_converter_mode = 0):
     lines.append("1,899,2,-15,3,-15,155,1,36,1,7,48,8,48,9,48,10,0,35,1,23,1000;")
 
     # Move (LEGACY)
-    lines.append(f"1,901,2,12.5,3,-73.75,155,1,36,1,51,1,57,10,28,{int(initial_y_pos + 30)},29,0,10,1.3,30,0,85,2;")
+    lines.append(f"1,901,2,12.5,3,-73.75,155,1,36,1,51,1,57,10,28,{int(initial_y_pos + 30)},29,0,10,1.3,30,0,85,2,24,2,25,2;")
 
     # Timewarp (LEGACY)
     lines.append(f"1,1616,2,{initial_y_pos},3,527.25,51,10,580,0,11,1;")
 
     ## Text MIDI Name
-    StringXPOS = 213.316 - ((5.5 * len(filename) - 5.5) / 2)
-    lines.append(f"1,914,2,{StringXPOS:.4f},3,1866.82,57,3,155,4,21,25,128,0.25,129,0.25,31,{gdText(filename)};")
+    StringXPOS = 171.5 + (2 * len(filename))
+    lines.append(f"1,914,2,{StringXPOS:.4f},3,1884.5,57,3,155,4,21,25,128,0.194,129,0.197,31,{gdText(filename)};")
 
     # Move to sync with MIDI
     final = int(big_note_y)
-    lines.append(f"1,901,2,{initial_y_pos},3,527.25,155,1,36,1,51,1,57,10,11,1,28,{final},29,0,10,{end_time_midi:.4f},30,0,85,2;")
+    lines.append(f"1,901,2,{initial_y_pos},3,527.25,155,1,36,1,51,1,57,10,11,1,28,{final},29,0,10,{end_time_midi:.4f},30,0,85,2,20,1,24,2,25,2;")
 
     # End MIDI
     #lines.append(f"1,1616,2,{big_note_y},3,527.25,51,5,580,0,11,1;") #Stop trigger
